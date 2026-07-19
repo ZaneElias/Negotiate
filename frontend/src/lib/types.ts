@@ -61,6 +61,7 @@ export interface Quote {
   binding: boolean;
   is_red_flag: boolean;
   red_flag_reason: string | null;
+  red_flag_pct_below_market: number | null;
   pre_negotiation_total: number | null;
   post_negotiation_total: number | null;
   negotiation_notes: string | null;

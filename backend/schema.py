@@ -154,6 +154,7 @@ class Quote(BaseModel):
 
     is_red_flag: bool = False
     red_flag_reason: Optional[str] = None
+    red_flag_pct_below_market: Optional[float] = None  # exact % below the scaled benchmark median, when that rule fired
 
     pre_negotiation_total: Optional[float] = None
     post_negotiation_total: Optional[float] = None

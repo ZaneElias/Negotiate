@@ -13,7 +13,18 @@ import { SetupPanel } from "@/components/setup-panel";
 import { api, ApiError } from "@/lib/api-client";
 import { usePolling } from "@/hooks/use-polling";
 import { cn } from "@/lib/utils";
-import type { CallListResult, CallRecord, CallStatus, HealthStatus, JobSpec, NegotiationStyle, Quote } from "@/lib/types";
+import type { CallListResult, CallOutcome, CallRecord, CallStatus, HealthStatus, JobSpec, NegotiationStyle, Quote } from "@/lib/types";
+
+// Every call ends in exactly one structured outcome — surface each one
+// explicitly, including the "failure" modes the agent handled gracefully.
+const OUTCOME_BADGES: Record<CallOutcome, { variant: "done" | "pending" | "live" | "flag"; label: string }> = {
+  quote_given: { variant: "done", label: "Quote received" },
+  callback_promised: { variant: "pending", label: "Callback promised" },
+  no_prices_over_phone: { variant: "live", label: "Won't quote by phone" },
+  declined: { variant: "flag", label: "Declined to quote" },
+  hang_up: { variant: "flag", label: "Hung up" },
+  unreachable: { variant: "flag", label: "Unreachable" },
+};
 
 const STYLE_LABELS: Record<NegotiationStyle, string> = {
   tough_negotiator: "Tough negotiator",
@@ -368,13 +379,33 @@ function CallCard({ call, quote }: { call: CallRecord; quote?: Quote }) {
 
         {quote && (
           <div className="rounded-md bg-paper p-2.5 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-ink">
-                {quote.total_price != null ? `$${quote.total_price.toLocaleString()}` : "—"}
-              </span>
-              <Badge variant={quote.binding ? "done" : "pending"}>{quote.binding ? "Binding" : "Rough estimate"}</Badge>
+            <div className="flex items-center justify-between gap-2">
+              {quote.outcome === "quote_given" ? (
+                <>
+                  <span className="font-medium text-ink">
+                    {quote.total_price != null ? `$${quote.total_price.toLocaleString()}` : "—"}
+                  </span>
+                  <div className="flex flex-wrap justify-end gap-1">
+                    <Badge variant={quote.binding ? "done" : "pending"}>{quote.binding ? "Binding" : "Rough estimate"}</Badge>
+                    {quote.is_red_flag && (
+                      <Badge variant="flag" title={quote.red_flag_reason ?? undefined}>
+                        {quote.red_flag_pct_below_market != null
+                          ? `Flagged: ${quote.red_flag_pct_below_market}% below benchmark`
+                          : "Flagged"}
+                      </Badge>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <Badge variant={OUTCOME_BADGES[quote.outcome].variant}>{OUTCOME_BADGES[quote.outcome].label}</Badge>
+              )}
             </div>
-            <p className="mt-1 text-xs capitalize text-ink-muted">{quote.outcome.replace(/_/g, " ")}</p>
+            {quote.outcome !== "quote_given" && quote.callback_time && (
+              <p className="mt-1 text-xs text-ink-muted">Callback expected: {new Date(quote.callback_time).toLocaleString()}</p>
+            )}
+            {quote.outcome !== "quote_given" && quote.negotiation_notes && (
+              <p className="mt-1 text-xs text-ink-muted">{quote.negotiation_notes}</p>
+            )}
             {quote.line_items.length > 0 && (
               <ul className="mt-1.5 space-y-0.5 text-xs text-ink-muted">
                 {quote.line_items.map((li, i) => (
