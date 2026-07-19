@@ -90,10 +90,6 @@ CORE_VARS: List[RequiredVar] = [
                 "The Twilio/SIP number (as registered in ElevenLabs) the Caller dials out from. "
                 "Telephony mode only.",
                 ("telephony",)),
-    RequiredVar("WEBHOOK_BASE_URL", "telephony",
-                "Public base URL ElevenLabs tool-calls hit, e.g. https://your-app.vercel.app. "
-                "Telephony mode only — simulation captures tool calls inline, no webhook needed.",
-                ("telephony",)),
 ]
 
 # ── Optional across both modes ──
@@ -109,6 +105,10 @@ OPTIONAL_VARS: List[RequiredVar] = [
     RequiredVar("GOOGLE_PLACES_API_KEY", "call_list",
                 "Alternative call-list source via Google Places. Tavily is preferred; either works.",
                 ("simulation", "telephony")),
+    RequiredVar("WEBHOOK_BASE_URL", "webhooks",
+                "Public URL for the agent's log_quote webhook (real-time quote capture on telephony). "
+                "Optional: without it, quotes are still captured from the polled call transcript.",
+                ("telephony",)),
     RequiredVar("COUNTERPARTY_TOUGH_NUMBER", "demo_personas",
                 "Phone number for the Tough Negotiator demo agent — only for telephony demo-persona "
                 "calls. Simulation mode drives this persona from prompts/counterparty_tough.md.",

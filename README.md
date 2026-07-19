@@ -17,7 +17,9 @@ Two ways to run "the other end of the phone", both real, both allowed by the bri
   back, and the price moves (or doesn't) **on the merits**. No Twilio, no phone numbers, no public webhook —
   and it's fully reproducible for judging. The quote is read straight from the returned transcript's tool call.
 - **Telephony (real voice).** The same Caller agent places real outbound calls over Twilio/SIP with playable
-  recordings. Flip `CALL_MODE=telephony` and add a caller phone number + public `WEBHOOK_BASE_URL`.
+  recordings. Flip `CALL_MODE=telephony` and add a caller phone number registered in ElevenLabs — that's it;
+  quotes are captured from the polled call transcript, so no public `WEBHOOK_BASE_URL` is required for a demo
+  (the human-in-the-loop path: the Caller phones you, you role-play each counterparty; recordings play in the UI).
 
 You are never more than one command from a working demo:
 
@@ -76,7 +78,7 @@ setup panel.
 | `TAVILY_API_KEY` | optional | Real-world call-list sourcing via web search (preferred over Google Places). |
 | `ELEVENLABS_INTERVIEW_AGENT_ID` | optional | Live voice intake. Manual-form + document intake work without it. |
 | `ELEVENLABS_CALLER_PHONE_NUMBER_ID` | telephony | The Twilio/SIP number the Caller dials from. |
-| `WEBHOOK_BASE_URL` | telephony | Public URL for the agent's `log_quote` tool. |
+| `WEBHOOK_BASE_URL` | optional | Public URL for the agent's `log_quote` webhook (real-time capture). Without it, quotes are read from the polled transcript, so a local telephony demo needs no ngrok. |
 | `COUNTERPARTY_*_NUMBER` | telephony (demo) | Numbers for the three telephony demo personas. |
 
 Full descriptions in `backend/.env.example`.

@@ -416,6 +416,16 @@ async def list_calls(job_id: str, refresh: bool = True) -> List[CallRecord]:
             if provider_status in ("done", "ended", "completed"):
                 record.status = CallStatus.COMPLETED
                 record.ended_at = datetime.utcnow()
+                # Capture the quote straight from the transcript's log_quote tool
+                # call, so a real telephony call works even without a public
+                # WEBHOOK_BASE_URL (the webhook stays a nice-to-have, not required).
+                if record.quote_id is None:
+                    logged = elevenlabs_client.extract_logged_quote_from_conversation(payload)
+                    if logged:
+                        if record.is_negotiation_callback:
+                            await _apply_negotiation_result(job_id, record, logged)
+                        else:
+                            await _apply_first_pass_quote(job_id, record, logged)
             elif provider_status in ("failed", "error"):
                 record.status = CallStatus.FAILED
                 record.error = payload.get("error") or "Call failed at provider."
