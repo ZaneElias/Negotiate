@@ -14,7 +14,8 @@ services:
     name: callpilot-backend
     runtime: python
     rootDir: backend
-    plan: starter            # a paid instance stays warm; free spins down and loses in-memory state
+    plan: free               # free tier is fine for a demo; it spins down after ~15 min idle (cold
+                             # start ~50s) and a restart clears in-memory jobs. Upgrade to keep it warm.
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
