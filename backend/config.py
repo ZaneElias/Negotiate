@@ -36,6 +36,26 @@ CONFIGS_DIR = Path(__file__).parent / "configs"
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 
+def _load_dotenv() -> None:
+    """Load backend/.env into the environment on import, so `uvicorn main:app`
+    just works without the caller having to export the keys first. Only sets
+    vars that aren't already in the environment (real env wins over the file)."""
+    env_path = Path(__file__).parent / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if key and key not in os.environ and value:
+            os.environ[key] = value
+
+
+_load_dotenv()
+
+
 class VerticalConfigError(RuntimeError):
     pass
 
