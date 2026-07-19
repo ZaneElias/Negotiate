@@ -413,9 +413,16 @@ function CallCard({ call, quote }: { call: CallRecord; quote?: Quote }) {
                 ))}
               </div>
               {call.recording_url && (
-                <audio controls src={call.recording_url} className="w-full">
-                  Your browser does not support audio playback.
-                </audio>
+                <div className="space-y-1">
+                  <audio controls preload="none" src={call.recording_url} className="w-full">
+                    Your browser does not support audio playback.
+                  </audio>
+                  {call.mode === "simulation" && (
+                    <p className="text-[11px] text-ink-muted">
+                      AI-voiced replay of this call&apos;s actual transcript (generated on first play).
+                    </p>
+                  )}
+                </div>
               )}
             </DialogContent>
           </Dialog>

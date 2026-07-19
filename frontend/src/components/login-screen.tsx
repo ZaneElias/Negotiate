@@ -52,17 +52,12 @@ export function LoginScreen({ onEnter }: { onEnter: () => void }) {
           <div className="relative flex w-full max-w-xs flex-col gap-3">
             <button
               onClick={onEnter}
-              className="group inline-flex h-11 items-center justify-center gap-3 rounded-lg bg-ink px-4 text-sm font-medium text-paper transition-transform hover:scale-[1.01]"
+              className="group inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-action px-4 text-sm font-medium text-action-foreground transition-transform hover:scale-[1.01]"
             >
-              <GoogleIcon /> Continue with Google
-            </button>
-            <button
-              onClick={onEnter}
-              className="group inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line-strong bg-paper px-4 text-sm font-medium text-ink transition-colors hover:border-action/60"
-            >
-              Continue as guest
+              Enter CallPilot
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </button>
+            <p className="text-center text-[11px] text-ink-muted">Demo — no account needed.</p>
           </div>
         </div>
 

@@ -246,6 +246,59 @@ def extract_logged_quote_from_conversation(conversation_payload: Dict[str, Any])
     return logged
 
 
+# ── Simulated-call audio (TTS replay) ──────────────────────────────────────
+# Premade ElevenLabs voices: the Caller agent gets one consistent voice; each
+# counterparty persona gets its own so the call sounds like two people.
+AGENT_VOICE_ID = os.environ.get("ELEVENLABS_AGENT_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")  # Rachel
+COUNTERPARTY_VOICE_IDS = {
+    "tough_negotiator": "onwK4e9ZLuTAKqWW03F9",   # Daniel — brusque, professional
+    "stonewaller": "TxGEqnHWrfWFTfGW9XjX",        # Josh — distracted, casual
+    "hard_sell_upseller": "pNInz6obpgDQGcFmaJgB", # Adam — fast-talking sales
+}
+DEFAULT_COUNTERPARTY_VOICE = "pNInz6obpgDQGcFmaJgB"
+TTS_MODEL = os.environ.get("ELEVENLABS_TTS_MODEL", "eleven_flash_v2_5")
+
+
+def synthesize_transcript_audio(
+    turns: List[Dict[str, Any]],
+    *,
+    counterparty_style: Optional[str] = None,
+    max_turns: int = 40,
+    max_chars_per_turn: int = 500,
+) -> bytes:
+    """
+    Voice a call transcript with ElevenLabs TTS — the agent and the
+    counterparty each get a distinct voice, and the MP3 segments are
+    concatenated into one playable stream. This is an AI-voiced replay of the
+    *actual* simulated conversation (the UI labels it as such), giving the
+    simulation path playable audio without telephony.
+    """
+    client = _sdk_client()
+    cp_voice = COUNTERPARTY_VOICE_IDS.get(counterparty_style or "", DEFAULT_COUNTERPARTY_VOICE)
+
+    out = bytearray()
+    for turn in turns[:max_turns]:
+        text = (turn.get("text") or "").strip()[:max_chars_per_turn]
+        if not text:
+            continue
+        voice_id = AGENT_VOICE_ID if turn.get("speaker") == "agent" else cp_voice
+        try:
+            audio_iter = client.text_to_speech.convert(
+                voice_id,
+                text=text,
+                model_id=TTS_MODEL,
+                output_format="mp3_44100_128",
+            )
+            for chunk in audio_iter:
+                out.extend(chunk)
+        except Exception as exc:
+            raise ElevenLabsClientError(f"TTS synthesis failed mid-transcript: {exc}") from exc
+
+    if not out:
+        raise ElevenLabsClientError("Transcript had no speakable turns to synthesize.")
+    return bytes(out)
+
+
 def get_recording_url(conversation_id: str) -> str:
     """Audio is binary at GET /v1/convai/conversations/{id}/audio — streamed
     through a backend proxy so the API key never reaches the browser."""

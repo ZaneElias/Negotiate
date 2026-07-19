@@ -72,6 +72,7 @@ app.add_middleware(
 JOBS: Dict[str, JobSpec] = {}
 CALLS: Dict[str, List[CallRecord]] = {}   # job_id -> [CallRecord]
 QUOTES: Dict[str, List[Quote]] = {}       # job_id -> [Quote]
+AUDIO_CACHE: Dict[str, bytes] = {}        # call_id -> synthesized MP3 (TTS replay); one synthesis per call
 _STATE_LOCK = asyncio.Lock()
 
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024  # 12 MB
@@ -736,6 +737,38 @@ async def proxy_recording(conversation_id: str):
     return StreamingResponse(_stream(), media_type="audio/mpeg")
 
 
+@app.get("/calls/{job_id}/{call_id}/audio")
+async def call_audio_replay(job_id: str, call_id: str):
+    """AI-voiced replay of a simulated call: the actual transcript, synthesized
+    with two distinct ElevenLabs voices (agent vs counterparty) and cached per
+    call. Synthesis happens on first play (the <audio> tags use preload=none)
+    so TTS credits are only spent on calls someone actually listens to."""
+    _job_or_404(job_id)
+    call = _call_or_404(job_id, call_id)
+    if not call.transcript:
+        raise HTTPException(status_code=404, detail={"error": "no_transcript", "message": "This call has no transcript to voice."})
+    try:
+        config.require_elevenlabs_config()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail={"error": "elevenlabs_not_configured", "message": str(exc)}) from exc
+
+    audio = AUDIO_CACHE.get(call_id)
+    if audio is None:
+        style = call.negotiation_style_label.value if call.negotiation_style_label else None
+        turns = [t.model_dump() for t in call.transcript]
+        try:
+            audio = await asyncio.to_thread(
+                elevenlabs_client.synthesize_transcript_audio, turns, counterparty_style=style
+            )
+        except elevenlabs_client.ElevenLabsClientError as exc:
+            raise HTTPException(status_code=502, detail={"error": "tts_failed", "message": str(exc)}) from exc
+        AUDIO_CACHE[call_id] = audio
+
+    from fastapi.responses import Response
+    return Response(content=audio, media_type="audio/mpeg",
+                    headers={"Cache-Control": "private, max-age=3600"})
+
+
 @app.get("/quotes/{job_id}")
 def list_quotes(job_id: str) -> List[Quote]:
     _job_or_404(job_id)
@@ -785,6 +818,9 @@ async def _run_one_simulation(*, job_id: str, record: CallRecord, persona: Dict[
         record.transcript = [TranscriptTurn(**t) for t in turns]
         record.status = CallStatus.COMPLETED
         record.ended_at = datetime.utcnow()
+        if turns:
+            # AI-voiced replay of this exact transcript, synthesized on first play.
+            record.recording_url = f"/api/calls/{job_id}/{record.call_id}/audio"
         if logged:
             await _apply_first_pass_quote(job_id, record, logged)
     except elevenlabs_client.ElevenLabsClientError as exc:
@@ -811,6 +847,8 @@ async def _run_one_negotiation(*, job_id: str, record: CallRecord, caller_agent_
         record.transcript = [TranscriptTurn(**t) for t in turns]
         record.status = CallStatus.COMPLETED
         record.ended_at = datetime.utcnow()
+        if turns:
+            record.recording_url = f"/api/calls/{job_id}/{record.call_id}/audio"
         if logged:
             await _apply_negotiation_result(job_id, record, logged)
     except elevenlabs_client.ElevenLabsClientError as exc:

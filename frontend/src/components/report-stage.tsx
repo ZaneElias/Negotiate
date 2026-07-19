@@ -253,9 +253,16 @@ function TranscriptButton({ rq }: { rq: RankedQuote }) {
           ))}
         </div>
         {rq.call.recording_url && (
-          <audio controls src={rq.call.recording_url} className="w-full">
-            Your browser does not support audio playback.
-          </audio>
+          <div className="space-y-1">
+            <audio controls preload="none" src={rq.call.recording_url} className="w-full">
+              Your browser does not support audio playback.
+            </audio>
+            {rq.call.mode === "simulation" && (
+              <p className="text-[11px] text-ink-muted">
+                AI-voiced replay of this call&apos;s actual transcript (generated on first play).
+              </p>
+            )}
+          </div>
         )}
       </DialogContent>
     </Dialog>
