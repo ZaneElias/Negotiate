@@ -2,6 +2,7 @@
 
 import { PhoneCall, ShieldCheck, AlertTriangle } from "lucide-react";
 import { StageProgress } from "@/components/stage-progress";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { HealthStatus, Stage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -29,13 +30,15 @@ export function AppShell({
               </div>
               <span className="font-serif text-lg font-semibold tracking-tight text-ink">CallPilot</span>
             </div>
-            <div className="sm:hidden">
+            <div className="flex items-center gap-2 sm:hidden">
+              <ThemeToggle />
               <ConfigPill health={health} />
             </div>
           </div>
           <div className="flex items-center justify-between gap-4 sm:justify-end">
             <StageProgress current={stage} furthestReached={furthestReached} onNavigate={onNavigate} />
-            <div className="hidden sm:block">
+            <div className="hidden items-center gap-2 sm:flex">
+              <ThemeToggle />
               <ConfigPill health={health} />
             </div>
           </div>

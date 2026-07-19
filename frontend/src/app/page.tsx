@@ -7,6 +7,7 @@ import { BriefStage, BriefStageSkeleton } from "@/components/brief-stage";
 import { CallsStage } from "@/components/calls-stage";
 import { NegotiateStage } from "@/components/negotiate-stage";
 import { ReportStage } from "@/components/report-stage";
+import { LoginScreen } from "@/components/login-screen";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { api, ApiError } from "@/lib/api-client";
@@ -26,6 +27,8 @@ export default function Page() {
   const [furthestReached, setFurthestReached] = useState<Stage>("brief");
   const [sessionExpired, setSessionExpired] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  // Cinematic entry gate (not auth) — shown once per session before the app.
+  const [entered, setEntered] = useState(false);
 
   const loadHealth = useCallback(() => {
     api.health().then(setHealth).catch(() => {});
@@ -95,6 +98,10 @@ export default function Page() {
   function handleConfirmed(confirmed: JobSpec) {
     setJob(confirmed);
     goToStage("calls");
+  }
+
+  if (!entered) {
+    return <LoginScreen onEnter={() => setEntered(true)} />;
   }
 
   if (sessionExpired) {

@@ -31,6 +31,33 @@
   --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 }
 
+/* ── Dark theme (cinematic) ────────────────────────────────────────────
+   Deep ink-navy canvas, luminous off-white text, one brighter blue. Set on
+   <html data-theme="dark"> by the no-flash script in layout.tsx. Because the
+   @theme block below maps colors to these vars inline, overriding them here
+   cascades to every utility automatically — no per-component dark: classes. */
+:root[data-theme="dark"] {
+  --paper: #0a0d15;
+  --paper-raised: #121826;
+  --ink: #eaecf3;
+  --ink-muted: #9aa4b6;
+  --line: #212a3b;
+  --line-strong: #35415a;
+
+  --action: #5b83ff;
+  --action-hover: #7796ff;
+  --action-foreground: #ffffff;
+
+  --status-live: #f0a35e;
+  --status-live-bg: #2a1d10;
+  --status-done: #3ecf8e;
+  --status-done-bg: #0f2419;
+  --status-flag: #ff6b6b;
+  --status-flag-bg: #2a1414;
+  --status-pending: #b7bccb;
+  --status-pending-bg: #1a2030;
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-paper-raised: var(--paper-raised);
@@ -68,6 +95,12 @@ html,
 body {
   background: var(--paper);
   color: var(--ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    transition: background-color 240ms ease, color 240ms ease;
+  }
 }
 
 body {

@@ -8,8 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Defaults to dark (the cinematic look); ThemeToggle restores a persisted
+  // preference on mount and lets the user switch.
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <body>
         {children}
         <Toaster />
