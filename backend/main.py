@@ -990,6 +990,30 @@ def _apply_red_flags(job: JobSpec, quotes: List[Quote], vconfig: Dict[str, Any])
             if "stair" not in labels and "carry" not in labels:
                 reasons.append("No stairs/long-carry fee itemized despite the job spec noting stairs or a long carry — likely to surprise on moving day.")
 
+        # cash_only_or_large_deposit: scan the itemization + notes for a
+        # cash-only demand or a deposit over 25% of the total — a common
+        # hostage-load precursor per BBB guidance. The hard-sell persona pushes
+        # exactly this ("40% deposit, cash or Zelle"), landing in notes/line items.
+        blob = " ".join(
+            filter(None, [q.negotiation_notes or ""]
+            + [li.label for li in q.line_items]
+            + [li.notes or "" for li in q.line_items])
+        ).lower()
+        if any(term in blob for term in ("cash only", "cash-only", "cash or zelle", "zelle only", "wire only", "no cards")):
+            reasons.append("Pushes cash-only / non-reversible payment — a hostage-load precursor per BBB guidance.")
+        for li in q.line_items:
+            if "deposit" in li.label.lower() and q.total_price and li.amount > 0.25 * q.total_price:
+                reasons.append(
+                    f"Requires a ${li.amount:,.0f} deposit — over 25% of the ${q.total_price:,.0f} total, "
+                    f"a hostage-load risk per BBB guidance."
+                )
+                break
+        else:
+            import re as _re
+            m = _re.search(r"(\d{2,3})\s*%\s*deposit", blob)
+            if m and int(m.group(1)) > 25:
+                reasons.append(f"Demands a {m.group(1)}% deposit up front — over 25%, a hostage-load risk per BBB guidance.")
+
         if reasons:
             q.is_red_flag = True
             q.red_flag_reason = " ".join(reasons)

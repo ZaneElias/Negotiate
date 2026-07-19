@@ -14,9 +14,12 @@ const WIDGET_SCRIPT_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
  * is passed in as a dynamic variable below so the tool call knows which job
  * to update.
  *
- * Verify the `dynamic-variables` attribute name against your agent's
- * dashboard-generated embed snippet before a live run — ElevenLabs' widget
- * attribute surface has changed shape before.
+ * `dynamic-variables` is the documented widget attribute (a JSON string); the
+ * job_id passed here is what the agent interpolates into its log_intake_field
+ * tool call. Caveat: that tool is a *webhook*, so field-logging only reaches
+ * this backend when WEBHOOK_BASE_URL is configured. Without it the widget can
+ * still hold the voice conversation, but use the manual form to persist the
+ * spec — it produces the identical JobSpec.
  */
 export function VoiceIntakeWidget({ agentId, jobId }: { agentId: string | null; jobId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
