@@ -155,7 +155,7 @@ export function CallsStage({
       <div className="flex items-center gap-2 rounded-md border border-line bg-paper-raised px-3 py-2 text-xs text-ink-muted">
         <Badge variant={isSimulation ? "action" : "live"}>{isSimulation ? "Simulation" : "Telephony"}</Badge>
         {isSimulation
-          ? "Agent-to-agent — the Caller negotiates the real demo personas via ElevenLabs, no phone calls or Twilio. Genuine, unscripted, reproducible."
+          ? "Agent-to-agent via ElevenLabs' simulation API — the real Caller agent negotiates each persona, unscripted, price moves on the merits. (Real Twilio voice is fully wired behind CALL_MODE=telephony; we ran the reproducible simulation path since telephony credits were out of budget for this submission.)"
           : "Real outbound voice calls over Twilio/SIP. Recordings are playable on each call."}
       </div>
 

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VoiceIntakeWidget } from "@/components/voice-intake-widget";
+import { Hero } from "@/components/hero";
 import { api, ApiError } from "@/lib/api-client";
 import type { HealthStatus, JobSpec } from "@/lib/types";
 
@@ -149,6 +150,7 @@ export function BriefStage({
 
   return (
     <div className="space-y-6">
+      <Hero />
       <div>
         <h1 className="font-serif text-2xl font-semibold text-ink">Tell us about your move</h1>
         <p className="mt-1 text-sm text-ink-muted">
