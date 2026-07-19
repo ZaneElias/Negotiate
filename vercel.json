@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "//": "Frontend-only Vercel deploy. Set the Vercel project's Root Directory to 'frontend' and add a BACKEND_URL env var pointing at the Render backend (see render.yaml). The Next.js rewrite in frontend/next.config.ts proxies same-origin /api/* to BACKEND_URL. The backend is NOT deployed on Vercel: its in-memory state and 30–60s agent simulations need Render's persistent process, not serverless functions."
+}

@@ -1,0 +1,90 @@
+# Vertical config: MOVING
+#
+# This is the one file that changes to retarget CallPilot at a different
+# market (auto repair, contractor bids, medical bills, ...). Nothing in
+# main.py, schema.py, or the prompt templates should need to change — only
+# this file, plus a fresh set of prompts/*.md written against the fields
+# named here (see prompts/README.md for the templating contract).
+
+vertical: moving
+display_name: "Moving Companies"
+
+# ── Job spec taxonomy ───────────────────────────────────────────────────
+# The exact shape both intake paths (voice interview, document extraction)
+# must produce. `required` fields block confirmation until present.
+job_spec_schema:
+  origin_address: {type: string, required: true, asked_by_interview: true}
+  destination_address: {type: string, required: true, asked_by_interview: true}
+  distance_miles: {type: number, required: false, asked_by_interview: true}
+  move_date: {type: string, required: true, asked_by_interview: true}
+  bedrooms: {type: number, required: true, asked_by_interview: true}
+  inventory_size: {type: string, required: true, enum: [studio, "1br", "2br", "3br", "4br+"], asked_by_interview: true}
+  large_items: {type: array, required: false, asked_by_interview: true, example: ["piano", "safe", "pool table"]}
+  stairs_origin: {type: number, required: true, asked_by_interview: true, description: "flights of stairs at pickup, 0 if elevator/ground floor"}
+  stairs_destination: {type: number, required: true, asked_by_interview: true}
+  elevator_origin: {type: boolean, required: false, asked_by_interview: true}
+  elevator_destination: {type: boolean, required: false, asked_by_interview: true}
+  long_carry_expected: {type: boolean, required: false, asked_by_interview: true, description: "will the truck be able to park within normal carry distance"}
+  packing_preference: {type: string, required: true, enum: [self_pack, full_pack, partial_pack], asked_by_interview: true}
+  special_handling_notes: {type: string, required: false, asked_by_interview: true}
+
+# ── Price benchmarks (ground truth for red-flag detection) ──────────────
+# Sourced from FMCSA guidance + moveBuddha aggregate data for a comparable
+# local/regional move. Override with a live lookup if you wire one in;
+# static numbers are the honest fallback for a demo build.
+price_benchmark:
+  source: "FMCSA consumer guidance + moveBuddha aggregate quote data (see README for citations)"
+  reference_move: "2BR, ~45 miles, standard local service, no long carry"
+  # For a *local* 2BR move at this distance, moveBuddha aggregate data centers
+  # around ~$1,700; the $6,506 high end is the long-distance/peak tail. The 30%
+  # floor (~$1,190) then flags a genuine lowball without tripping fair quotes.
+  low_usd: 1158
+  median_usd: 1700
+  high_usd: 6506
+  per_bedroom_adjustment_usd: 350   # rough scaling knob for bedrooms != 2
+  per_flight_of_stairs_usd: 75
+  long_carry_surcharge_usd: 150
+
+# ── Red-flag rules ────────────────────────────────────────────────────────
+red_flag_rules:
+  - id: below_market_30pct
+    description: "Any total quote 30%+ below the benchmark median (scaled for bedrooms) is a warning sign, not a win — classic lowball-then-upcharge pattern."
+    threshold_pct_below_median: 30
+  - id: no_binding_commitment
+    description: "Quote given with outcome=quote_given but binding=false — the company would not confirm the number is firm."
+  - id: missing_stairs_or_long_carry_fee
+    description: "Job spec has stairs_origin/destination > 0 or long_carry_expected=true but the quote's line items don't itemize a stairs/long-carry fee — likely to appear as a surprise on moving day."
+  - id: cash_only_or_large_deposit
+    description: "Quote requires cash-only payment or a deposit over 25% of total before the move — a common hostage-load precursor per BBB guidance."
+
+# ── Negotiation levers (what the Closer is allowed to use) ─────────────
+negotiation_levers:
+  - id: cite_competing_quote
+    description: "State the lowest binding competing total and ask this company to beat or match it. Never state a number that isn't an actual gathered quote."
+  - id: question_itemized_fee
+    description: "Ask for justification of any fee not itemized in the original quote (e.g. 'fuel surcharge' with no amount)."
+  - id: ask_price_match
+    description: "Explicitly ask 'can you match $X' rather than open-ended 'can you do better'."
+  - id: ask_extras_at_same_price
+    description: "If price won't move, ask whether packing materials / an extra hour / insurance can be added at no cost instead."
+
+# ── Counterparty roster for simulated/human-in-the-loop mode ───────────
+# Maps NegotiationStyle enum values to the prompt file used when running
+# this style as a built counter-agent (mode 3) or as a label for the demo
+# operator role-playing this persona (mode 2).
+counterparty_styles:
+  tough_negotiator:
+    prompt_file: prompts/counterparty_tough.md
+    company_name: "Summit Relocation Group"
+    first_message: "Summit Relocation, this is Dave — what can I do for you?"
+    description: "Quotes high first, negotiates hard, concedes only against real competing numbers."
+  stonewaller:
+    prompt_file: prompts/counterparty_stonewall.md
+    company_name: "Ironclad Movers"
+    first_message: "Ironclad Movers, hold on— yeah, go ahead."
+    description: "Resists giving any number over the phone; needs to be worked past 'we don't quote sight-unseen'."
+  hard_sell_upseller:
+    prompt_file: prompts/counterparty_hardsell.md
+    company_name: "BudgetMove Express"
+    first_message: "BudgetMove Express, best rates in town! What can I help you move?"
+    description: "Quotes low to hook the customer, then layers on fees; classic lowball-then-upcharge."

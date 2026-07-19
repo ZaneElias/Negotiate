@@ -1,0 +1,21 @@
+# backend
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.env
+
+# frontend
+frontend/node_modules/
+frontend/.next/
+frontend/next-env.d.ts
+frontend/.env.local
+
+# misc
+.DS_Store
+*.log
+
+# extra safety: never commit any env file with secrets (keeps .env.example)
+.env
+**/.env
+.env.local
+**/.env.local

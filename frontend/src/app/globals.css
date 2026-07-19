@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* ── CallPilot design tokens ──────────────────────────────────────────
+   Warm paper background, deep ink/navy text, one blue action color,
+   compact status accents, thin borders, restrained motion. */
+
+:root {
+  --paper: #f7f3ec;
+  --paper-raised: #fffdf9;
+  --ink: #1c2530;
+  --ink-muted: #5b6472;
+  --line: #e4dcce;
+  --line-strong: #cfc4ad;
+
+  --action: #2555c7;
+  --action-hover: #1d47ab;
+  --action-foreground: #ffffff;
+
+  --status-live: #b5590a;
+  --status-live-bg: #fdf0dd;
+  --status-done: #1f7a4d;
+  --status-done-bg: #e6f4ec;
+  --status-flag: #b3261e;
+  --status-flag-bg: #fbe9e7;
+  --status-pending: #6b6255;
+  --status-pending-bg: #efe9dc;
+
+  --radius: 0.625rem;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-foreground: var(--action-foreground);
+
+  --color-status-live: var(--status-live);
+  --color-status-live-bg: var(--status-live-bg);
+  --color-status-done: var(--status-done);
+  --color-status-done-bg: var(--status-done-bg);
+  --color-status-flag: var(--status-flag);
+  --color-status-flag-bg: var(--status-flag-bg);
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-bg: var(--status-pending-bg);
+
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+}
+
+* {
+  border-color: var(--line);
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--action) 20%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cp-transition {
+    transition: all 160ms ease;
+  }
+}

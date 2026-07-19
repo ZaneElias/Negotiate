@@ -1,0 +1,43 @@
+# Render blueprint for the CallPilot backend.
+#
+# Why Render (not Vercel) for the backend: state is in-memory (JOBS/CALLS/
+# QUOTES) and the ElevenLabs agent simulations run 30–60s per request. That
+# needs a single persistent process, which Vercel's stateless, time-limited
+# serverless functions don't provide. Render runs the FastAPI app as a normal
+# long-lived web service. Deploy the Next.js frontend on Vercel and point its
+# BACKEND_URL env var at this service's URL.
+#
+# Set the secret env vars (marked sync:false) in the Render dashboard.
+
+services:
+  - type: web
+    name: callpilot-backend
+    runtime: python
+    rootDir: backend
+    plan: starter            # a paid instance stays warm; free spins down and loses in-memory state
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: CALL_MODE
+        value: simulation
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_CALLER_AGENT_ID
+        sync: false
+      - key: ELEVENLABS_INTERVIEW_AGENT_ID
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: ELEVENLABS_AGENT_LLM
+        value: gpt-4.1
+      # Telephony only (leave unset for simulation mode):
+      - key: ELEVENLABS_CALLER_PHONE_NUMBER_ID
+        sync: false
+      - key: WEBHOOK_BASE_URL
+        sync: false
+      # CORS: set to your Vercel frontend origin in production.
+      - key: CORS_ALLOW_ORIGINS
+        value: "*"
