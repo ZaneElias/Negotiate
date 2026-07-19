@@ -48,9 +48,9 @@ export function AppShell({
       <div className="border-b border-line bg-status-live-bg/40">
         <p className="mx-auto max-w-5xl px-4 py-1.5 text-xs text-ink-muted sm:px-6">
           {health?.call_mode === "telephony"
-            ? "CallPilot places real outbound phone calls on your behalf and records them for your report."
-            : "CallPilot runs genuine agent-to-agent negotiations (ElevenLabs) and keeps full transcripts for your report."}{" "}
-          Nothing runs until you confirm your job details. Transcripts and audio are kept only for this session&apos;s job.
+            ? "Places real outbound calls on your behalf and records them for your report."
+            : "Runs live agent-to-agent negotiations and keeps full transcripts for your report."}{" "}
+          Nothing runs until you confirm your details, and everything is kept only for this session.
         </p>
       </div>
 

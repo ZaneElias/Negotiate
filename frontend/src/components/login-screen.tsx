@@ -3,12 +3,12 @@
 import { useRef, useState } from "react";
 import { PhoneCall, ArrowRight } from "lucide-react";
 import { Globe } from "@/components/ui/globe";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /**
- * Cinematic entry screen. This is an *entry gate*, not authentication — both
- * buttons simply enter the demo (CallPilot has no accounts). The design is
- * intentionally always-dark for a filmic first impression, independent of the
- * app's light/dark toggle. No credentials are collected or stored.
+ * Entry screen — an entry gate, not authentication (CallPilot has no accounts).
+ * Both buttons simply enter the demo; nothing is collected or stored. Uses the
+ * theme tokens, so the top-right toggle flips it between dark and light live.
  */
 export function LoginScreen({ onEnter }: { onEnter: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -21,65 +21,53 @@ export function LoginScreen({ onEnter }: { onEnter: () => void }) {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07090f] p-4 text-white">
-      {/* ambient cinematic gradients */}
-      <div className="pointer-events-none absolute -left-40 -top-40 size-[36rem] rounded-full bg-[radial-gradient(circle,rgba(91,131,255,0.22),transparent_65%)] blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-52 -right-32 size-[40rem] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.16),transparent_65%)] blur-2xl" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-paper p-4 text-ink">
+      {/* ambient accent glows */}
+      <div className="pointer-events-none absolute -left-40 -top-40 size-[36rem] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--action)_22%,transparent),transparent_65%)] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-52 -right-32 size-[40rem] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.14),transparent_65%)] blur-3xl" />
 
-      <div className="relative grid w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl backdrop-blur-xl md:grid-cols-2">
+      <div className="absolute right-4 top-4 z-10">
+        <ThemeToggle />
+      </div>
+
+      <div className="relative grid w-full max-w-4xl overflow-hidden rounded-2xl border border-line bg-paper-raised/70 shadow-2xl backdrop-blur-xl md:grid-cols-2">
         {/* left: brand + entry */}
         <div
           ref={panelRef}
           onMouseMove={onMove}
           onMouseLeave={() => setGlow((g) => ({ ...g, on: false }))}
-          className="relative flex flex-col justify-center gap-6 px-8 py-12 sm:px-12"
+          className="relative flex flex-col items-center justify-center gap-8 px-8 py-16 sm:px-12"
         >
           <div
-            className="pointer-events-none absolute size-72 rounded-full bg-[radial-gradient(circle,rgba(120,150,255,0.16),transparent_70%)] blur-2xl transition-opacity duration-200"
+            className="pointer-events-none absolute size-72 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--action)_16%,transparent),transparent_70%)] blur-2xl transition-opacity duration-200"
             style={{ left: glow.x - 144, top: glow.y - 144, opacity: glow.on ? 1 : 0 }}
           />
-          <div className="relative flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-md bg-[#5b83ff] text-white">
-              <PhoneCall className="size-4" />
+          <div className="relative flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-action text-action-foreground">
+              <PhoneCall className="size-5" />
             </div>
-            <span className="font-serif text-lg font-semibold tracking-tight">CallPilot</span>
+            <span className="font-serif text-2xl font-semibold tracking-tight">CallPilot</span>
           </div>
 
-          <div className="relative">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-white/70">
-              <span className="size-1.5 rounded-full bg-[#5b83ff]" /> The Negotiator · ElevenLabs × Hack-Nation
-            </span>
-            <h1 className="mt-4 font-serif text-3xl font-semibold leading-[1.1] sm:text-4xl">
-              Never overpay again.
-            </h1>
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/65">
-              Voice agents that call the market, compare itemized quotes, and haggle with real leverage — so you
-              don&apos;t have to.
-            </p>
-          </div>
-
-          <div className="relative flex flex-col gap-3">
+          <div className="relative flex w-full max-w-xs flex-col gap-3">
             <button
               onClick={onEnter}
-              className="group inline-flex h-11 items-center justify-center gap-3 rounded-lg bg-white px-4 text-sm font-medium text-[#0b0f17] transition-transform hover:scale-[1.01]"
+              className="group inline-flex h-11 items-center justify-center gap-3 rounded-lg bg-ink px-4 text-sm font-medium text-paper transition-transform hover:scale-[1.01]"
             >
               <GoogleIcon /> Continue with Google
             </button>
             <button
               onClick={onEnter}
-              className="group inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/90 transition-colors hover:border-[#5b83ff]/60 hover:bg-white/10"
+              className="group inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line-strong bg-paper px-4 text-sm font-medium text-ink transition-colors hover:border-action/60"
             >
               Continue as guest
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </button>
-            <p className="text-center text-[11px] text-white/40">
-              Demo mode — no account needed. Nothing is stored beyond this browser session.
-            </p>
           </div>
         </div>
 
         {/* right: the globe — "one agent, the whole market" */}
-        <div className="relative hidden items-center justify-center border-l border-white/10 bg-[radial-gradient(circle_at_50%_40%,rgba(91,131,255,0.12),transparent_70%)] md:flex">
+        <div className="relative hidden items-center justify-center border-l border-line bg-[radial-gradient(circle_at_50%_40%,color-mix(in_srgb,var(--action)_10%,transparent),transparent_70%)] md:flex">
           <div className="w-[78%]">
             <Globe />
           </div>
