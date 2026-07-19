@@ -22,11 +22,15 @@ import hashlib
 import json
 import logging
 import os
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from collections import defaultdict, deque
+
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 import config
@@ -71,6 +75,106 @@ QUOTES: Dict[str, List[Quote]] = {}       # job_id -> [Quote]
 _STATE_LOCK = asyncio.Lock()
 
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024  # 12 MB
+MAX_STR_LEN = 2000  # cap any free-text field the intake accepts
+MAX_ARRAY_ITEMS = 50
+
+
+# ── Security hardening ─────────────────────────────────────────────────────
+# In-memory per-IP rate limiting for the expensive / paid-provider endpoints,
+# so a bot (or a runaway client) can't burn OpenAI/ElevenLabs credits or spam
+# uploads. Buckets are sliding windows; state is process-memory like the rest.
+_RATE_BUCKETS: Dict[str, deque] = defaultdict(deque)
+
+
+def _rate_rule(method: str, path: str):
+    """(bucket_name, max_requests, window_secs) for a request, or None to skip."""
+    if method != "POST":
+        return None
+    if path.endswith("/document"):
+        return ("upload", 12, 60)
+    if "/simulate" in path or path.endswith("/start"):
+        return ("calls", 10, 60)
+    if "/negotiate" in path:
+        return ("negotiate", 10, 60)
+    if path == "/intake":
+        return ("intake", 40, 60)
+    return None
+
+
+@app.middleware("http")
+async def _rate_limit_middleware(request: Request, call_next):
+    rule = _rate_rule(request.method, request.url.path)
+    if rule:
+        bucket, limit, window = rule
+        ip = request.client.host if request.client else "unknown"
+        key = f"{ip}:{bucket}"
+        now = time.time()
+        dq = _RATE_BUCKETS[key]
+        while dq and dq[0] < now - window:
+            dq.popleft()
+        if len(dq) >= limit:
+            logger.warning("rate limit hit: ip=%s bucket=%s path=%s", ip, bucket, request.url.path)
+            return JSONResponse(
+                status_code=429,
+                content={"detail": {"error": "rate_limited",
+                                    "message": "Too many requests — please slow down and try again shortly."}},
+            )
+        dq.append(now)
+    return await call_next(request)
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    """Never leak a stack trace or internal detail to the client. Real error
+    goes to the server log; the caller gets a generic message."""
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": {"error": "internal_error", "message": "Something went wrong. Please try again."}},
+    )
+
+
+def _sanitize_fields(vertical: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+    """Accept only fields defined by the active vertical's schema, coerced and
+    bounded by declared type. Unknown keys are dropped (unsafe-form defense),
+    strings are length-capped, numbers are finite and clamped, arrays are
+    size-capped. Validates on the server regardless of any client checks."""
+    try:
+        schema = config.load_vertical_config(vertical)["job_spec_schema"]
+    except Exception:
+        return {}
+    clean: Dict[str, Any] = {}
+    for key, value in fields.items():
+        spec = schema.get(key)
+        if spec is None or value is None:
+            continue  # drop anything not in the schema
+        t = spec.get("type")
+        if t == "string":
+            clean[key] = str(value)[:MAX_STR_LEN]
+        elif t == "number":
+            try:
+                n = float(value)
+            except (TypeError, ValueError):
+                continue
+            if n != n or n in (float("inf"), float("-inf")):
+                continue
+            clean[key] = max(0.0, min(n, 1_000_000.0))
+        elif t == "boolean":
+            clean[key] = bool(value)
+        elif t == "array":
+            if isinstance(value, (list, tuple)):
+                clean[key] = [str(x)[:200] for x in list(value)[:MAX_ARRAY_ITEMS]]
+        else:
+            clean[key] = str(value)[:MAX_STR_LEN]
+    return clean
+
+
+_IMAGE_MAGIC_OK = (
+    lambda b: b[:8] == b"\x89PNG\r\n\x1a\n"
+    or b[:3] == b"\xff\xd8\xff"
+    or b[:6] in (b"GIF87a", b"GIF89a")
+    or (b[:4] == b"RIFF" and b[8:12] == b"WEBP")
+)
 
 
 def _job_or_404(job_id: str) -> JobSpec:
@@ -151,6 +255,7 @@ def get_intake_schema(job_id: str) -> Dict[str, Any]:
 
 
 def _merge_fields(job: JobSpec, fields: Dict[str, Any], source: IntakeSource, confidence: str = "confirmed") -> None:
+    fields = _sanitize_fields(job.vertical, fields)  # server-side validation, every intake path
     for key, value in fields.items():
         job.fields[key] = value
         job.field_sources[key] = source
@@ -224,6 +329,15 @@ async def intake_document(job_id: str, file: UploadFile = File(...)) -> JobSpec:
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail={"error": "file_too_large", "max_bytes": MAX_UPLOAD_BYTES})
     await file.close()
+
+    # Don't trust the client-supplied Content-Type — verify the bytes really are
+    # an image before spending an OpenAI vision call on them.
+    if not _IMAGE_MAGIC_OK(raw):
+        raise HTTPException(
+            status_code=415,
+            detail={"error": "not_an_image",
+                    "message": "That file isn't a valid PNG/JPEG/WEBP/GIF image. Upload an actual image."},
+        )
 
     vconfig = config.load_vertical_config(job.vertical)
     try:
