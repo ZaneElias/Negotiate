@@ -17,5 +17,6 @@ frontend/.env.local
 # extra safety: never commit any env file with secrets (keeps .env.example)
 .env
 **/.env
+
 .env.local
 **/.env.local
